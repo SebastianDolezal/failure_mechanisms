@@ -1,0 +1,241 @@
+FAILURE MECHANISMS
+Do the reasons a language model fails have anything to do with why it
+actually fails?
+
+A plain-language guide to the failure_mechanisms experiment: the question,
+the six things it needs to be true, how the pipeline tests them, and what
+each possible result would mean.
+
+
+THE PROBLEM, IN ONE PARAGRAPH
+------------------------------
+When a language model gets a math problem wrong, you can ask another model
+to explain what went wrong, and it will happily tell you: "it applied the
+discount to the wrong quantity," or "it dropped a step in the middle."
+These explanations sound reasonable. But there's a real possibility they're
+just plausible-sounding stories - a fluent description of the outward
+behavior that has no actual connection to what happened inside the network.
+The model produced the wrong number; a second model produced a
+wrong-sounding story to match. Neither one tells you anything about the
+mechanism.
+
+This experiment asks a narrower, checkable version of that worry: when two
+failures get the same human-readable label, do they also share a distinct,
+reproducible pattern inside the model's computation - something you can
+find by directly intervening on its internal activations - or is the label
+just a coincidence of phrasing?
+
+
+SIX QUESTIONS THE PIPELINE HAS TO ANSWER
+------------------------------------------
+The central question above only means something if it's built on solid
+ground. The pipeline breaks it into six checkable pieces, roughly in the
+order the stages actually test them.
+
+01. Can "why it failed" even be measured consistently?
+    If two independent judge models can't agree on a description of the
+    same failure, there's no stable label to test in the first place.
+
+02. Does a failure's label predict its internal signature?
+    The main test: failures sharing a semantic category should look more
+    alike, mechanistically, than failures picked at random - more than
+    chance, and more than the problem's own difficulty would explain.
+
+03. Does that signature add anything real?
+    If the internal signature only tells you what you could already guess
+    from surface features (problem length, edit size, and so on), it isn't
+    carrying new information.
+
+04. Does it hold at every level of detail?
+    Categories can be coarse ("arithmetic error") or fine ("misapplied a
+    percentage to the wrong operand"). A real effect should survive
+    zooming in and out.
+
+05. Would the categories re-emerge on their own?
+    Cluster the internal signatures with no knowledge of the human labels
+    at all - do the resulting groups line up with the taxonomy, or invent
+    a different one?
+
+06. Does it matter practically, and does it replicate?
+    If a fix that resolves one failure of a given type also resolves a
+    different failure of the SAME type more often than a mismatched one -
+    and the whole pattern shows up again on a second, untouched benchmark
+    - that's a much stronger claim than a one-off correlation.
+
+
+THE METHOD, IN SIX MOVES
+--------------------------
+1. Start from a benchmark the model mostly gets right
+   Grade-school math word problems (GSM8K). The model solves the great
+   majority of them correctly - that's the point: failures are the
+   interesting minority, not the norm.
+
+2. Nudge each problem without changing its meaning
+   Swap a name, reformat a number, reword a sentence - tiny edits that
+   shouldn't change the correct answer at all.
+
+3. Find where the model flips
+   For a lot of problems, the model answers every variant correctly.
+   Occasionally, one specific rewording tips it into a wrong answer. That
+   pair - right on variant A, wrong on variant B, same underlying problem
+   - isolates one clean failure from everything else that could be going
+   on.
+
+4. Ask independently what went wrong
+   Two smaller models, unrelated to each other and to the model being
+   studied, each read the failed reasoning and write a short description -
+   deliberately kept blind to anything about internal activations.
+
+5. Find where it went wrong, mechanically
+   Separately and without looking at the descriptions: swap the model's
+   internal layer-by-layer activations between the right run and the wrong
+   run, one layer at a time, and measure which swaps actually flip the
+   outcome. That produces a numeric "causal signature" for the failure - a
+   profile of which layers mattered.
+
+6. Test whether the two sides agree
+   Statistics ask: do failures with the same human-written label also have
+   more similar causal signatures than failures with different labels -
+   after accounting for everything the problem and the edit itself could
+   already explain?
+
+
+EVERY STAGE OF THE PIPELINE
+------------------------------
+Seventeen scripts, run in order. [GATE] marks a reliability gate - a hard
+checkpoint the run isn't allowed to quietly skip past.
+
+Phase 0 - choosing a model
+  00_pilot          Model pilot
+                     Runs a handful of flips through each candidate model,
+                     purely to check the measurement will actually work -
+                     flip rate, trace quality, non-degenerate patching
+                     signal. Selection happens on measurement grounds
+                     only, before any result is visible.
+
+Phase 1 - generating the data
+  01 variants        Make surface variants
+                      Applies the name-swap / number-format / wording
+                      perturbations to a batch of problems.
+  02 traces           Generate reasoning traces
+                      Runs every variant through the model and records its
+                      full step-by-step answer - the biggest single time
+                      cost in the whole pipeline.
+  03 pairs            Select clean/fail pairs
+                      Picks out the problems where one variant was solved
+                      and a near-identical one wasn't.
+  04 stable           Build stable controls
+                      Also keeps correct-to-correct pairs, later used as a
+                      baseline so "the failure's signature" means excess
+                      signal beyond ordinary variation.
+
+Phase 2 - describing the failures
+  05 annotate [GATE, feeds Gate B]   Two independent judges
+                      Each judge model reads a failure and writes a short,
+                      structured description of the first observable
+                      error - blind to the other judge and to any internal
+                      activations.
+  06 reliability [GATE]              Semantic reliability - Gate B
+                      Do the two judges agree with each other? Measured
+                      with Cohen's kappa and Krippendorff's alpha. If they
+                      don't agree, there's no stable category to test
+                      downstream, and the run should stop here rather than
+                      build a taxonomy on noise.
+  07 taxonomy         Freeze the taxonomy
+                      Clusters the surviving descriptions into a taxonomy
+                      of failure types and locks it - every later stage
+                      uses this exact taxonomy, so results can't be
+                      quietly re-tuned after the fact.
+
+Phase 3 - finding the mechanism
+  08 exact patch      Exact activation patching
+                      The core measurement: for each pair, swap
+                      activations layer by layer and record the effect,
+                      then subtract the stable-pair baseline to get each
+                      failure's causal signature.
+  09 attribution      Attribution patching
+                      A faster, gradient-based estimate of the same thing,
+                      computed independently on a subset - a cross-check,
+                      not a replacement.
+  10 reliability [GATE]               Mechanistic reliability - Gate C
+                      Do the exact and gradient-based estimates agree with
+                      each other more than two unrelated failures agree by
+                      chance? If the measurement itself isn't reliable,
+                      nothing built on top of it can be trusted.
+
+Phase 4 - the actual test
+  11 correspondence   Main correspondence test
+                      The confirmatory test: do same-category pairs have
+                      more similar causal signatures than different-
+                      category pairs, beyond chance? Answers question 02.
+  12 prediction       Incremental prediction test
+                      Does adding the causal signature improve prediction
+                      of failure type beyond surface covariates alone?
+                      Answers question 03.
+  13 resolution       Resolution sweep
+                      Repeats the correspondence test at coarse, medium,
+                      and fine-grained taxonomy levels. Answers question
+                      04.
+  14 split/merge      Blind re-clustering
+                      Clusters the causal signatures with no knowledge of
+                      the taxonomy, then compares the two groupings.
+                      Answers question 05.
+
+Phase 5 & 6 - does it matter, does it hold up
+  15 transfer         Intervention transfer
+                      Tests whether an intervention location that fixes
+                      one failure also helps a different failure of the
+                      same type more often than a mismatched one - a
+                      functional, not just statistical, check.
+  16 replicate        Frozen replication on SVAMP
+                      Re-runs the whole measurement on a second, untouched
+                      benchmark using the taxonomy and thresholds exactly
+                      as frozen - no re-tuning allowed. Answers question
+                      06.
+
+
+WHAT THE RESULT COULD ACTUALLY LOOK LIKE
+--------------------------------------------
+This isn't a pass/fail experiment - it can land in a few genuinely
+different places, and each one means something different.
+
+[STRONG POSITIVE] Semantic labels are mechanistically grounded
+  Same-label failures cluster together causally, the signature improves
+  prediction beyond covariates, the effect survives at every taxonomy
+  resolution, blind clustering rediscovers the categories on its own,
+  fixes transfer within a category more than across categories, and the
+  whole thing replicates on SVAMP. This would be real evidence that
+  today's semantic failure-mode language tracks something the model is
+  actually doing - not just a story.
+
+[MIXED RESULT] Real, but coarser than expected
+  Correspondence holds at coarse categories ("arithmetic slip") but breaks
+  down at fine-grained ones ("misapplied percentage to wrong operand").
+  This would suggest the categories people actually use are meaningfully
+  real, but finer-grained taxonomies currently used in interpretability
+  write-ups may be over-claiming precision the mechanism doesn't support.
+
+[NULL RESULT] The labels are just plausible stories
+  Same-label failures are no more mechanistically similar than randomly
+  matched ones, once covariates are accounted for. A real, useful negative
+  result - it would mean a common interpretability practice (asking a
+  model to explain its own or another model's mistake) is producing
+  fluent narrative, not causal insight, at least for this kind of failure.
+
+[INCONCLUSIVE] The question goes unanswered
+  Any of the four gates fails - judges don't agree, the two patching
+  methods don't agree, or the sample is too small for the statistics to
+  mean anything. This isn't evidence against the hypothesis; it means the
+  measurement wasn't sound enough to test it, and the honest move is to
+  say so rather than report a number anyway.
+
+Where this run actually stands: it's a small end-to-end test (--target-n
+40 against the design's own recommended minimum of 120-200), being run to
+prove the pipeline works mechanically before committing a much longer run
+at full scale. At this size, the INCONCLUSIVE outcome above is the
+expected one, not a failure of the experiment.
+
+
+--
+failure_mechanisms - a local research pipeline testing whether semantic
+descriptions of LLM failures correspond to reproducible causal structure.

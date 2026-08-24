@@ -1,0 +1,27 @@
+# Target model under study for the cloud-scale run. Verified against the
+# model's real config.json before use (num_hidden_layers=28, hidden_size=3584,
+# num_attention_heads=28) - these numbers directly size ModelWrapper's
+# per-layer activation capture, so a mismatch here would silently corrupt
+# every patching result.
+name: qwen2.5-7b-instruct
+hf_id: Qwen/Qwen2.5-7B-Instruct
+family: qwen2
+n_layers: 28
+hidden_size: 3584
+n_heads: 28
+dtype: bfloat16
+device_map: auto
+tokenizer_id: Qwen/Qwen2.5-7B-Instruct
+chat_template: true
+
+# Deterministic generation settings (fixed for the entire study; see Section 4).
+generation:
+  do_sample: false
+  temperature: 0.0
+  top_p: 1.0
+  num_beams: 1
+  max_new_tokens: 512
+  seed: 0
+
+# Residual-stream hook point used for activation patching (Section 27: start layer-level).
+patch_site: resid_pre

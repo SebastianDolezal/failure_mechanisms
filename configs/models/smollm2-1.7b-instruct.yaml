@@ -1,0 +1,31 @@
+# Independent semantic-annotation judge A (Section 13-15). See judge B
+# (tinyllama-1.1b-chat.yaml) for the pairing rationale.
+#
+# Deliberately small (~3.4GB in fp16) and never a pilot/target candidate
+# (unlike reusing e.g. phi-3.5-mini-instruct, which WOULD risk self-judging
+# on any run where that happened to be the chosen --model) - this is a
+# dedicated judge-only checkpoint. Fully open (Apache 2.0), ungated, no HF
+# login needed. Sized for constrained hardware (e.g. an 8-16GB unified-memory
+# laptop): the whole pipeline never loads more than one model at a time
+# (each script stage is a fresh process), so the binding constraint is the
+# single largest model in play, not the sum of all of them.
+name: smollm2-1.7b-instruct
+hf_id: HuggingFaceTB/SmolLM2-1.7B-Instruct
+family: smollm2
+n_layers: 24
+hidden_size: 2048
+n_heads: 32
+dtype: bfloat16
+device_map: auto
+tokenizer_id: HuggingFaceTB/SmolLM2-1.7B-Instruct
+chat_template: true
+
+generation:
+  do_sample: false
+  temperature: 0.0
+  top_p: 1.0
+  num_beams: 1
+  max_new_tokens: 300
+  seed: 0
+
+role: semantic_judge

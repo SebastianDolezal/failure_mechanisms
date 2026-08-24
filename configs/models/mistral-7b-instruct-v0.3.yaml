@@ -1,0 +1,27 @@
+# Judge A - replaces smollm2-1.7b-instruct, which was producing degenerate
+# annotations (wrong_span identical to minimal_corrected_span on ~70% of
+# failures, discovered during the GSM8K discovery run). Different family
+# from the Qwen target model (Section 15: the target model must not be its
+# own judge) and from judge B (Phi, Microsoft) for annotator diversity.
+# Verified ungated and against the model's real config.json before use
+# (num_hidden_layers=32, hidden_size=4096, num_attention_heads=32).
+name: mistral-7b-instruct-v0.3
+hf_id: mistralai/Mistral-7B-Instruct-v0.3
+family: mistral
+n_layers: 32
+hidden_size: 4096
+n_heads: 32
+dtype: bfloat16
+device_map: auto
+tokenizer_id: mistralai/Mistral-7B-Instruct-v0.3
+chat_template: true
+
+generation:
+  do_sample: false
+  temperature: 0.0
+  top_p: 1.0
+  num_beams: 1
+  max_new_tokens: 512
+  seed: 0
+
+patch_site: resid_pre

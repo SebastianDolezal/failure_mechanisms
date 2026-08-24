@@ -1,0 +1,23 @@
+# Candidate model B for the Phase-0 measurement pilot (Section 4: "another
+# open-weight instruct model in roughly the 2-4B range", different family
+# from the Qwen candidate so the pilot is not confounded with architecture).
+name: phi-3.5-mini-instruct
+hf_id: microsoft/Phi-3.5-mini-instruct
+family: phi3
+n_layers: 32
+hidden_size: 3072
+n_heads: 32
+dtype: bfloat16
+device_map: auto
+tokenizer_id: microsoft/Phi-3.5-mini-instruct
+chat_template: true
+
+generation:
+  do_sample: false
+  temperature: 0.0
+  top_p: 1.0
+  num_beams: 1
+  max_new_tokens: 512
+  seed: 0
+
+patch_site: resid_pre

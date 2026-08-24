@@ -1,0 +1,37 @@
+# GSM8K: primary discovery benchmark (Section 5). Used for taxonomy
+# construction, primary causal analysis, measurement reliability, semantic
+# resolution analysis, and intervention-transfer analysis.
+benchmark: gsm8k
+hf_dataset: gsm8k
+hf_config: main
+split: test
+role: discovery
+
+raw_path: data/raw/gsm8k
+variants_path: data/variants/gsm8k
+generations_path: data/generations/gsm8k
+pairs_path: data/pairs/gsm8k
+
+n_variants_per_problem: 8   # k = 6-8, Section 7
+target_n_pairs: 200          # Section 12
+min_n_pairs: 120
+
+perturbation_families:
+  - name_swap
+  - number_format
+  - lexical_conservative
+
+# Answer parsing: value following "####"
+answer_regex: '####\s*([\-0-9,\.]+)'
+
+reasoning_prompt: |
+  Solve the following problem carefully.
+
+  Give your reasoning in short numbered steps.
+  Each step should contain one main operation or inference.
+
+  Finish with exactly:
+  #### <numeric answer>
+
+  Problem:
+  {question}

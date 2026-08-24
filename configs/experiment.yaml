@@ -1,0 +1,95 @@
+# Global, cross-script experiment settings. Scripts import this via
+# src.datasets.schema.load_experiment_config() so that every stage of the
+# pipeline (annotation, mechanisms, statistics) shares one source of truth.
+
+random_seed: 0
+
+# --- Phase 0: model pilot (Section 4, 44) -----------------------------------
+# Single candidate: the target model (Qwen2.5-7B-Instruct) has already been
+# chosen for the cloud-scale run, so the pilot here only MEASURES its real
+# flip rate cheaply (used to size stage 02's base-problem pool, Section 44)
+# rather than choosing between candidates.
+pilot:
+  models:
+    - configs/models/qwen2.5-7b-instruct.yaml
+  n_pairs_per_model: 30
+  gates:
+    min_flip_rate: 0.03          # enough correct->incorrect flips must exist
+    min_trace_parse_rate: 0.90   # traces must be structured enough to annotate
+    min_nondegenerate_frac: 0.60 # frac of layers with |R_i,l| above noise floor
+    min_exact_atp_spearman: 0.30 # exact vs attribution-patching agreement
+
+# --- Semantic annotation (Section 13-19) ------------------------------------
+# Annotators are deliberately NOT the target model under study (Section 15:
+# "the target model should not be the only judge of its own failures").
+# Default strategy: two independent judge models from different families,
+# neither of which is a pilot/target candidate, so cross-judge agreement in
+# script 06 reflects category stability rather than one model's phrasing
+# habits. `primary_annotator_id` is the source frozen into the taxonomy by
+# script 07. Human annotator entries are optional and recommended (not
+# required) as a spot-check - uncomment / add more to strengthen Gate B from
+# "cross-model reliability" to "human-verified reliability".
+annotation:
+  n_reliability_subset: 100
+  primary_annotator_id: judge_a
+  annotators:
+    - type: model
+      id: judge_a
+      model_config: configs/models/mistral-7b-instruct-v0.3.yaml
+    - type: model
+      id: judge_b
+      model_config: configs/models/phi-3.5-mini-instruct.yaml
+    # - type: human
+    #   id: annotator_1                # optional: full-set human spot-check
+    # - type: human
+    #   id: annotator_2                # optional: stratified human spot-check
+  stratified_subset_frac: 0.3
+
+# --- Taxonomy (Section 18, 34) ----------------------------------------------
+taxonomy:
+  embedding_model: sentence-transformers/all-mpnet-base-v2
+  hdbscan:
+    min_cluster_size: 5
+    min_samples: 3
+    metric: euclidean
+  hierarchy_levels: [coarse, mid, fine]
+  frozen_path: data/taxonomy/taxonomy_v1.json
+
+# --- Mechanisms (Section 20-27) ---------------------------------------------
+mechanisms:
+  scoring: length_normalized_logprob   # {first_token, length_normalized_logprob}
+  patch_site: resid_pre
+  reliability_subset_n: 55
+  granularity: layer   # {layer, layer_attn_mlp, head} - start coarse (Sec 27)
+
+# --- Matching / covariates (Section 29) -------------------------------------
+matching:
+  covariates:
+    - problem_embedding
+    - problem_type
+    - perturbation_family
+    - edit_size
+    - problem_length
+    - trace_length
+    - answer_properties
+    - reasoning_step_count
+    - error_step_index
+    - difficulty
+  n_hard_negatives_per_item: 5
+
+# --- Statistics (Section 30-33) ---------------------------------------------
+statistics:
+  n_permutations: 10000
+  n_bootstrap: 5000
+  similarity_metric_primary: cosine
+  similarity_metrics_secondary: [spearman, topk_jaccard]
+  topk_k: 8
+  alpha: 0.05
+
+# --- Reliability gates (Section 41) -----------------------------------------
+gates:
+  gate_a_min_n: 120
+  gate_b_min_kappa: 0.4
+  gate_c_min_reliability_ratio: 1.0   # same-failure sim must exceed diff-failure sim
+  gate_d_min_excess_signal: 0.0       # D_i must carry signal beyond stable baseline
+  gate_e_max_taxonomy_predictability_f1: 0.6  # from covariates alone

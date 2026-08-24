@@ -1,0 +1,30 @@
+# Independent semantic-annotation judge B (Section 13-15), replacing
+# tinyllama-1.1b-chat.yaml - that model reliably ignored the "return ONLY a
+# JSON object" instruction (0/26 parseable annotations in practice) and just
+# wrote free-form prose instead. Stability AI / StableLM is a different
+# org/training lineage from both the Qwen target model and the Phi pilot
+# candidate, so cross-judge agreement in script 06 still isn't two
+# same-family checkpoints agreeing with themselves. Ungated, Apache 2.0.
+#
+# ~3.3GB in fp16 - a step up from TinyLlama (1.1B) in instruction-following
+# capability while still being cheap/fast for the annotation stages.
+name: stablelm-2-zephyr-1.6b
+hf_id: stabilityai/stablelm-2-zephyr-1_6b
+family: stablelm
+n_layers: 24
+hidden_size: 2048
+n_heads: 32
+dtype: bfloat16
+device_map: auto
+tokenizer_id: stabilityai/stablelm-2-zephyr-1_6b
+chat_template: true
+
+generation:
+  do_sample: false
+  temperature: 0.0
+  top_p: 1.0
+  num_beams: 1
+  max_new_tokens: 300
+  seed: 0
+
+role: semantic_judge

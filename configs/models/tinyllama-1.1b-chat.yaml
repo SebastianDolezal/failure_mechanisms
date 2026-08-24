@@ -1,0 +1,28 @@
+# Independent semantic-annotation judge B (Section 13-15). Paired with judge
+# A (smollm2-1.7b-instruct.yaml): different org/training lineage (TinyLlama
+# project, not Meta - it's an independent from-scratch pretrain on the Llama
+# architecture, Apache 2.0, NOT gated), so cross-judge agreement in script 06
+# isn't two checkpoints from the same lab agreeing with themselves.
+#
+# ~2.2GB in fp16 - smallest model in the whole pipeline, chosen so the
+# annotation stages are cheap and fast on constrained hardware.
+name: tinyllama-1.1b-chat
+hf_id: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+family: tinyllama
+n_layers: 22
+hidden_size: 2048
+n_heads: 32
+dtype: bfloat16
+device_map: auto
+tokenizer_id: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+chat_template: true
+
+generation:
+  do_sample: false
+  temperature: 0.0
+  top_p: 1.0
+  num_beams: 1
+  max_new_tokens: 300
+  seed: 0
+
+role: semantic_judge

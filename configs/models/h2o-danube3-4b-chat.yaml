@@ -1,0 +1,34 @@
+# Independent semantic-annotation judge B (Section 13-15), replacing
+# stablelm-2-zephyr-1.6b.yaml - that model segfaulted (SIGSEGV) reliably
+# during weight loading on this machine's MPS/PyTorch stack, reproduced
+# under healthy memory conditions with a known-good model loading fine
+# moments before/after - a real architecture-support issue, not memory
+# pressure. H2O.ai / danube is `model_type: llama`, the same well-tested
+# architecture family as the target model (Qwen2) and every other model
+# that has run cleanly on this machine tonight (TinyLlama, SmolLM2).
+# Different org/training lineage from both Qwen (target) and Phi (pilot
+# candidate). Ungated, Apache 2.0.
+#
+# ~8GB in fp16 - noticeably bigger than the previous 1.1-1.7B judges (a
+# real capability step up for instruction-following), comparable in size
+# to the target model itself.
+name: h2o-danube3-4b-chat
+hf_id: h2oai/h2o-danube3-4b-chat
+family: h2o-danube3
+n_layers: 24
+hidden_size: 3840
+n_heads: 32
+dtype: bfloat16
+device_map: auto
+tokenizer_id: h2oai/h2o-danube3-4b-chat
+chat_template: true
+
+generation:
+  do_sample: false
+  temperature: 0.0
+  top_p: 1.0
+  num_beams: 1
+  max_new_tokens: 300
+  seed: 0
+
+role: semantic_judge
