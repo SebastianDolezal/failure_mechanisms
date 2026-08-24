@@ -2,7 +2,7 @@
 # construction, primary causal analysis, measurement reliability, semantic
 # resolution analysis, and intervention-transfer analysis.
 benchmark: gsm8k
-hf_dataset: gsm8k
+hf_dataset: openai/gsm8k
 hf_config: main
 split: test
 role: discovery
