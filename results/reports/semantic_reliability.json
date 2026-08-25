@@ -1,0 +1,16 @@
+{
+  "n_shared_items": 89,
+  "pairwise": {
+    "judge_a_vs_judge_b": {
+      "cohens_kappa_category": 0.08318310584599531,
+      "macro_f1_category": 0.20267611176702083,
+      "first_error_step_exact_agreement": 0.47191011235955055,
+      "first_error_step_agreement_tol1": 0.7752808988764045,
+      "raw_description_embedding_stability": 0.5573398470878601
+    }
+  },
+  "krippendorffs_alpha_category": 0.085389484562718,
+  "mean_cohens_kappa": 0.08318310584599531,
+  "gate_b_passed": false,
+  "gate_b_threshold": 0.4
+}

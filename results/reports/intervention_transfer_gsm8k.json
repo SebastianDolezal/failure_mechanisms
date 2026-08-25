@@ -1,0 +1,20 @@
+{
+  "benchmark": "gsm8k",
+  "n_pairs": 102,
+  "top_k": 5,
+  "mean_R_transfer": -2.8466423708531603,
+  "mean_R_random_layers": -1.3290005151814626,
+  "mean_R_own_top_layers_upper_bound": 1.289279436316358,
+  "mean_R_same_category": 0.13173574770441637,
+  "mean_R_diff_category": -5.017324728445969,
+  "functional_validity_model": {
+    "beta_C_AB": -0.30096006783450807,
+    "p_C_AB": 0.859484772011462,
+    "beta_same_category": 4.821629510070314,
+    "p_same_category": 0.3007100213827275,
+    "r_squared": 0.19548469203396512,
+    "n_obs": 102
+  },
+  "n_pairs_failed": 0,
+  "error_log_path": "/workspace/failure_mechanisms/results/logs/15_intervention_transfer_gsm8k_qwen2.5-7b-instruct_errors.jsonl"
+}
