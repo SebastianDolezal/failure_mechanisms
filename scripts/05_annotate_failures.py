@@ -43,8 +43,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("annotate")
 
 ANNOTATION_PROMPT = """You are reviewing a language model's step-by-step solution to a math word \
-problem. Identify the first externally observable error in the reasoning. Describe what went \
-wrong at that point without speculating about the model's internal mechanism.
+problem. Identify the first externally observable error in the reasoning: the first step that \
+introduces a computation, quantity, or logical move that is objectively wrong given the problem \
+and the (correct) steps before it. Do not pick a later step that merely repeats or carries \
+forward an error already present earlier. Describe what went wrong at that point without \
+speculating about the model's internal mechanism.
 
 Problem:
 {question}
@@ -62,10 +65,19 @@ Model's final answer: {model_answer}
 Return ONLY a JSON object with exactly these keys:
 {{
   "first_error_step": <integer step number where the error first appears>,
-  "wrong_span": "<verbatim text of the erroneous step or phrase>",
-  "minimal_corrected_span": "<the smallest edit that would fix that step>",
-  "description": "<short, phenomenological description of what went wrong, e.g. \
-'applied the percentage to the wrong quantity'>",
+  "wrong_span": "<verbatim text of ONLY the specific erroneous phrase or sub-expression within \
+that step - not the whole step, unless the whole step is wrong>",
+  "minimal_corrected_span": "<the same span, edited to be correct - this must differ from \
+wrong_span; if you cannot find a sub-span that isolates the error, widen wrong_span until the \
+two differ>",
+  "description": "<start with EXACTLY ONE of these category labels, then a colon, then a short \
+specific detail - e.g. 'wrong operation: divided instead of multiplying the discount rate'. \
+Categories: wrong operation (added/subtracted/multiplied/divided incorrectly); wrong quantity \
+(used the wrong number or variable from the problem); unjustified rounding (rounded or dropped a \
+fractional remainder without basis); missing step (skipped a necessary computation); \
+misread constraint (misunderstood what the problem is asking or a stated condition); wrong \
+formula (applied an incorrect rule, ratio, or relationship); sign error (wrong positive/negative \
+direction); other (only if none of the above fit).>",
   "confidence": <float between 0 and 1>
 }}
 """

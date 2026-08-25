@@ -130,9 +130,16 @@ def main():
 
         with tracker.guard(pair_key, context="intervention_transfer"):
             rec_a, rec_b = records[a_idx], records[b_idx]
-            layers_A = top_k_layers(D[a_idx], args.top_k)
+            # prefer_positive=True: both the transfer source (A's layers) and
+            # the own-top-layers upper bound are meant to represent "where
+            # patching helps," not just "where the signature is extreme" -
+            # selecting by |D| picked layers that hurt about as often as they
+            # helped (verified empirically: ~54% of |D|-top layers had
+            # negative raw recovery), which is why the "upper bound" was
+            # coming out worse than random layers.
+            layers_A = top_k_layers(D[a_idx], args.top_k, prefer_positive=True)
             random_layers = rng.sample(range(n_layers), min(args.top_k, n_layers))
-            layers_B_own = top_k_layers(D[b_idx], args.top_k)
+            layers_B_own = top_k_layers(D[b_idx], args.top_k, prefer_positive=True)
 
             clean_prefix_b, fail_prefix_b, correct_b, error_b = _prefix_and_continuations(bench_cfg, rec_b)
 

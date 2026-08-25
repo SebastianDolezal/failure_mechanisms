@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
-# Launches the full GSM8K discovery pipeline for the cloud-scale run
-# (Qwen2.5-7B-Instruct target, Mistral-7B-Instruct-v0.3 / Phi-3.5-mini-instruct
-# judges, target-n=200), and makes sure it survives an SSH disconnect.
+# Resumes the GSM8K discovery pipeline from stage 05 onward, after the
+# annotation-prompt (Gate B), attribution-patching (Gate C), and
+# intervention-transfer layer-selection (H7) fixes. Stages 00-04 (pilot,
+# variants, traces, pairs, stable controls) are untouched by those fixes and
+# already completed in the prior run - re-running them would just redo the
+# ~13-hour trace-generation stage for no reason. Only run this against a
+# repo whose data/annotations and results/logs/{08,09,15}_checkpoint* files
+# have been cleared of the pre-fix run's data (already done as of this
+# script's last edit - see the archived _pre_fix_stale_state_* folder).
 #
 # Usage (from the repo root, on the cloud instance):
 #   bash run_cloud.sh
 #
 # Progress: tail -f logs/cloud_run_*.log
 # If it stops for any reason, just re-run this script - every expensive
-# stage (02 traces, 05 annotate, 08 patching, 09 attribution, 15 transfer)
-# checkpoints its own progress and resumes automatically.
+# stage (05 annotate, 08 patching, 09 attribution, 15 transfer) checkpoints
+# its own progress and resumes automatically.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -33,6 +39,7 @@ echo "Logging to $LOGFILE"
 nohup python3 -u scripts/run_pipeline.py \
     --model qwen2.5-7b-instruct \
     --target-n 200 \
+    --start-stage 05_annotate_judge_a \
     --force \
     > "$LOGFILE" 2>&1 &
 

@@ -4,8 +4,11 @@ exact-patching instrument (RQ1b), never as the primary causal estimator.
 
     D_l^AtP ~= (A_clean_l - A_fail_l) . grad_{A_l} m_i
 
-computed with a single forward+backward pass on the failed run (plus one
-forward pass on the clean run to obtain A_clean), vs. exact patching's O(L)
+where m_i = lp_correct - lp_error is the SAME margin exact patching targets
+(Section 20-21). Both terms of that margin are differentiated - see the note
+in _differentiable_margin below for why that matters - computed with two
+forward+backward passes on the failed run (one per continuation) plus one
+forward pass on the clean run to obtain A_clean, vs. exact patching's O(L)
 forward passes.
 """
 from __future__ import annotations
@@ -22,8 +25,27 @@ def _differentiable_margin(
     correct_continuation: str,
     error_continuation: str,
 ):
-    """Forward pass with grad enabled; returns (margin_scalar_tensor,
-    list_of_resid_pre_tensors_with_grad, input_ids)."""
+    """Returns (margin: float, captured_correct: list[Tensor|None],
+    grads_correct: list[Tensor|None], grads_error: list[Tensor|None]).
+
+    Exact patching's R (Section 22) measures the effect of an intervention on
+    the FULL margin m_i = lp_correct - lp_error - patching one activation
+    changes both the correct- and the error-continuation's log-probability,
+    and R reflects both. The original attribution-patching implementation
+    only differentiated lp_correct (lp_error was detached), so it was a
+    linear approximation of a *different, incomplete* quantity - not just a
+    noisier estimate of the same one. That mismatch is a first-order
+    candidate for why exact and AtP profiles showed only mean_spearman=0.06
+    agreement (Gate C).
+
+    Fix: run two separate backward passes, one per continuation, and sum
+    their gradients at each layer. This is valid because both forward passes
+    share the identical `prefix` text - the prefix-position activations are
+    numerically identical between the two passes (causal attention means a
+    prefix token's representation cannot depend on what follows it), even
+    though they come from two distinct computation graphs and so need two
+    separate .backward() calls rather than one.
+    """
     model = wrapper.model
     tok = wrapper.tokenizer
 
@@ -61,10 +83,19 @@ def _differentiable_margin(
 
     lp_correct, captured_correct = seq_logprob(correct_continuation)
     lp_error, captured_error = seq_logprob(error_continuation)
-    # Use the correct-continuation forward pass's activations as the
-    # reference point for attribution (matches where m_i is most sensitive).
-    margin = lp_correct - lp_error.detach()
-    return margin, captured_correct, prefix_ids.shape[1]
+
+    wrapper.model.zero_grad(set_to_none=True)
+    lp_correct.backward()
+    grads_correct = [c.grad.clone() if (c is not None and c.grad is not None) else None
+                      for c in captured_correct]
+
+    wrapper.model.zero_grad(set_to_none=True)
+    (-lp_error).backward()
+    grads_error = [c.grad.clone() if (c is not None and c.grad is not None) else None
+                    for c in captured_error]
+
+    margin = float((lp_correct - lp_error).detach())
+    return margin, captured_correct, grads_correct, grads_error
 
 
 def attribution_patching_profile(
@@ -83,26 +114,33 @@ def attribution_patching_profile(
 
     clean_acts = wrapper.capture_activations(clean_prefix)
 
-    margin, captured, _ = _differentiable_margin(
+    _, captured, grads_correct, grads_error = _differentiable_margin(
         wrapper, fail_prefix, correct_continuation, error_continuation
     )
-    wrapper.model.zero_grad(set_to_none=True)
-    margin.backward()
 
     D = np.zeros(n_layers)
     fail_pos = changed_fail_positions[:k]
     clean_pos = changed_clean_positions[:k]
     for l in range(n_layers):
-        act = captured[l]
-        if act is None or act.grad is None:
+        # grads_correct[l] / grads_error[l] have shape [1, seq_len, hidden]
+        # (the retained-grad tensor is the layer's raw input, batch dim
+        # included) - drop the batch dim before indexing by position.
+        gc = grads_correct[l][0] if grads_correct[l] is not None else None
+        ge = grads_error[l][0] if grads_error[l] is not None else None
+        if gc is None and ge is None:
             continue
-        grad = act.grad[0]  # [seq_len, hidden]
-        max_idx = grad.shape[0] - 1
+        seq_len = gc.shape[0] if gc is not None else ge.shape[0]
+        max_idx = seq_len - 1
         contrib = 0.0
         for cp, fp in zip(clean_pos, fail_pos):
             if fp > max_idx or cp >= clean_acts.hidden_states[l].shape[0]:
                 continue
-            diff = (clean_acts.hidden_states[l][cp].float() - act[0, fp].detach().float())
-            contrib += float(diff @ grad[fp].float())
+            grad_at_fp = 0.0
+            if gc is not None:
+                grad_at_fp = grad_at_fp + gc[fp]
+            if ge is not None:
+                grad_at_fp = grad_at_fp + ge[fp]
+            diff = (clean_acts.hidden_states[l][cp].float() - captured[l][0, fp].detach().float())
+            contrib += float(diff @ grad_at_fp.float())
         D[l] = contrib
     return D

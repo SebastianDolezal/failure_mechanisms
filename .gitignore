@@ -17,3 +17,4 @@ results/logs/*.log
 *.safetensors
 .ipynb_checkpoints/
 TEST-RUN/
+_pre_fix_stale_state_*/

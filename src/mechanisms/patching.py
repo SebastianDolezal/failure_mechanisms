@@ -66,9 +66,26 @@ def exact_layer_patching_profile(
     return {"R": R, "m_clean": m_clean, "m_fail": m_fail, "aligned": aligned}
 
 
-def top_k_layers(signature, k: int) -> list[int]:
+def top_k_layers(signature, k: int, prefer_positive: bool = False) -> list[int]:
+    """Returns the indices of the k most causally-significant layers.
+
+    Default (prefer_positive=False): ranks by |signature| - "most significant
+    in either direction," the original selection rule.
+
+    prefer_positive=True: ranks by the signed value instead, biasing toward
+    layers where patching *recovers* correct behavior (positive R/D) rather
+    than layers that are merely extreme in magnitude. This matters because a
+    large |D| layer is just as often strongly negative (patching there makes
+    things worse) as strongly positive - selecting by magnitude alone does
+    not preferentially surface "helpful" layers. Callers that specifically
+    want intervention locations expected to help (e.g. the intervention-
+    transfer "own top layers" upper bound, or the transfer source layers)
+    should pass prefer_positive=True.
+    """
     import numpy as np
-    return np.argsort(-np.abs(signature))[:k].tolist()
+    signature = np.asarray(signature)
+    key = signature if prefer_positive else np.abs(signature)
+    return np.argsort(-key)[:k].tolist()
 
 
 def multi_layer_patch_recovery(
