@@ -1,0 +1,34 @@
+{
+  "reports": [
+    {
+      "model": "qwen2.5-7b-instruct",
+      "n_attempted": 193,
+      "n_flips": 30,
+      "flip_rate": 0.15544041450777202,
+      "trace_parse_rate": 0.9831606217616581,
+      "mean_nondegenerate_fraction": 0.5321428571428571,
+      "mean_exact_atp_spearman": 0.1127257799671593,
+      "n_reliability_examples": 20,
+      "generation_errors": {
+        "n_attempted": 193,
+        "n_failed": 0,
+        "n_succeeded": 193,
+        "error_log_path": "/workspace/failure_mechanisms/results/logs/00_model_pilot_qwen2.5-7b-instruct_generation_errors.jsonl"
+      },
+      "patching_errors": {
+        "n_attempted": 20,
+        "n_failed": 0,
+        "n_succeeded": 20,
+        "error_log_path": "/workspace/failure_mechanisms/results/logs/00_model_pilot_qwen2.5-7b-instruct_patching_errors.jsonl"
+      },
+      "gates_passed": {
+        "flip_rate": true,
+        "trace_parse_rate": true,
+        "nondegenerate": false,
+        "exact_atp_reliability": false
+      },
+      "all_gates_passed": false
+    }
+  ],
+  "selected_model": null
+}

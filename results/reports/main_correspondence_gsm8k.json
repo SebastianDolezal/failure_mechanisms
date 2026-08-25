@@ -1,0 +1,28 @@
+{
+  "benchmark": "gsm8k",
+  "category_level": "mid",
+  "n_failures": 89,
+  "continuous_correspondence": {
+    "beta_sem": 0.13829186999335488,
+    "se_sem": 0.14225300030881002,
+    "p_sem": 0.3309737776994861,
+    "r_squared": 0.044543268974625905,
+    "n_obs": 889,
+    "params": {
+      "const": 0.1524254844151331,
+      "edit_size_diff": -0.006653498980391838,
+      "problem_length_diff": -0.0015898818758919467,
+      "trace_length_diff": -0.002318795871307058,
+      "same_perturbation": 0.14616888597592445,
+      "S_sem": 0.13829186999335488
+    }
+  },
+  "Delta_observed": 0.03833198449080155,
+  "Delta_permutation_p_value": 0.1591,
+  "Delta_bootstrap_ci": [
+    -0.04651815929660505,
+    0.13952292311973244
+  ],
+  "Delta_bootstrap_mean": 0.041408334482099005,
+  "n_permutations": 10000
+}

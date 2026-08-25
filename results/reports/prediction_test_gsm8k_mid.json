@@ -1,0 +1,17 @@
+{
+  "n_items": 89,
+  "n_classes": 2,
+  "baseline": {
+    "macro_f1": 0.47876920270023715,
+    "balanced_accuracy": 0.5060606060606061,
+    "cross_entropy": 0.6791523150944855
+  },
+  "mechanistic": {
+    "macro_f1": 0.4880020848716501,
+    "balanced_accuracy": 0.49621212121212127,
+    "cross_entropy": 0.9682555205449189
+  },
+  "delta_macro_f1": 0.009232882171412937,
+  "delta_balanced_accuracy": -0.009848484848484829,
+  "delta_cross_entropy": -0.28910320545043344
+}
