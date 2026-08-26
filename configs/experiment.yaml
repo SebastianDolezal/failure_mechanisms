@@ -38,7 +38,7 @@ annotation:
       model_config: configs/models/mistral-7b-instruct-v0.3.yaml
     - type: model
       id: judge_b
-      model_config: configs/models/llama-3.1-8b-instruct.yaml
+      model_config: configs/models/olmo2-7b-instruct.yaml
     # - type: human
     #   id: annotator_1                # optional: full-set human spot-check
     # - type: human

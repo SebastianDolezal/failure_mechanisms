@@ -5,22 +5,22 @@
 # a real confound in the judge_a/judge_b confusion matrix: judge_b used
 # "wrong formula" far more often than judge_a on the same failures, more
 # consistent with a capability gap than genuine annotator disagreement.
-# Llama is a different family from both Qwen (target model) and Mistral
-# (judge A), and comparable in size/capability to judge A.
+# OLMo 2 is a different family from both Qwen (target model) and Mistral
+# (judge A), and comparable in size/capability to judge A. Chosen over
+# Llama-3.1-8B-Instruct specifically because it is NOT gated on HuggingFace
+# (Apache-2.0, verified via the HF models API: "gated": false) - no license
+# click-through needed before the token can pull it.
 # Verified against the model's real config.json before use
-# (num_hidden_layers=32, hidden_size=4096, num_attention_heads=32,
-# num_key_value_heads=8 - grouped-query attention, irrelevant for a
-# text-only judge role since this model is never patched or probed
-# internally, only used to generate annotation text).
-name: llama-3.1-8b-instruct
-hf_id: meta-llama/Llama-3.1-8B-Instruct
-family: llama
+# (num_hidden_layers=32, hidden_size=4096, num_attention_heads=32).
+name: olmo2-7b-instruct
+hf_id: allenai/OLMo-2-1124-7B-Instruct
+family: olmo2
 n_layers: 32
 hidden_size: 4096
 n_heads: 32
 dtype: bfloat16
 device_map: auto
-tokenizer_id: meta-llama/Llama-3.1-8B-Instruct
+tokenizer_id: allenai/OLMo-2-1124-7B-Instruct
 chat_template: true
 
 generation:

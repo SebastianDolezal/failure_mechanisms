@@ -54,7 +54,7 @@ MODEL=qwen2.5-7b-instruct
 JUDGE_A_ID=judge_a
 JUDGE_B_ID=judge_b
 JUDGE_A_CFG=configs/models/mistral-7b-instruct-v0.3.yaml
-JUDGE_B_CFG=configs/models/llama-3.1-8b-instruct.yaml
+JUDGE_B_CFG=configs/models/olmo2-7b-instruct.yaml
 
 {
   echo "=== 05 annotate (judge_a, broad stage-of-reasoning categories, upgraded judge_b) ==="
