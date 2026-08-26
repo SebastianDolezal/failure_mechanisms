@@ -71,25 +71,27 @@ that step - not the whole step, unless the whole step is wrong>",
 wrong_span; if you cannot find a sub-span that isolates the error, widen wrong_span until the \
 two differ>",
   "description": "<start with EXACTLY ONE of these category labels, then a colon, then a short \
-specific detail - e.g. 'wrong operation: divided instead of multiplying the discount rate'. Check \
-the categories in this exact order and stop at the first one that applies - most GSM8K errors can \
-be described more than one way, and this priority order exists specifically so two different \
-annotators land on the same label instead of splitting between equally-defensible descriptions of \
-the same mistake: \
-(1) wrong quantity - the step plugs in a wrong number or variable value from the problem, even if \
-the arithmetic operation applied to it would otherwise have been correct. Use this whenever the \
-numbers going into the step are wrong, regardless of what operation follows. \
-(2) unjustified rounding - the right numbers and right operation, but a fractional remainder was \
-rounded or dropped without basis. \
-(3) sign error - the right numbers and operation, but the wrong positive/negative direction. \
-(4) missing step - a necessary computation was skipped entirely, rather than done wrong. \
-(5) misread constraint - the model misunderstood what the problem is asking or a stated condition, \
-independent of any specific arithmetic step. \
-(6) wrong operation - none of the above apply, the numbers are right, but the wrong arithmetic \
-operation or relationship was used (this includes what might otherwise be called 'used the wrong \
-formula, ratio, or rate' - in GSM8K a formula is just a specific operation choice, so do not use a \
-separate 'wrong formula' label; call it wrong operation instead). \
-(7) other (only if none of the above fit).>",
+specific detail - e.g. 'wrong computation: divided instead of multiplying the discount rate'. \
+These three categories are grouped by WHICH STAGE of solving the problem broke, not by surface \
+arithmetic behavior - that's deliberate: 'divided instead of multiplied', 'used the wrong ratio', \
+and 'rounded down without basis' all look different on the surface but are the same underlying \
+failure (the model understood the problem correctly and had the right numbers, but the computation \
+it then did was wrong). Grouping by that shared underlying failure, rather than by surface \
+behavior, is meant to make it easier for two different annotators to land on the same label \
+instead of splitting between equally-valid surface descriptions of the same mistake. Check the \
+categories in this exact order and stop at the first one that applies: \
+(1) wrong quantity - the model correctly understood what to compute, but plugged in a wrong number \
+or variable value from the problem. The input to the computation is wrong, regardless of whether \
+the computation itself would otherwise have been correct. \
+(2) wrong computation - the model correctly understood what to compute and used the right numbers, \
+but the computation applied to them was wrong: wrong arithmetic operation, wrong formula/ratio/rate, \
+wrong sign/direction, or an unjustified rounding/truncation of a fractional remainder. All of these \
+are the same underlying failure - right inputs, wrong processing - so do not split them into \
+separate labels. \
+(3) wrong problem understanding - the model misunderstood what the problem is asking, misread a \
+stated condition, or skipped a necessary step entirely because it did not realize that step was \
+needed. This is a failure in understanding the task itself, not in the arithmetic that followed. \
+(4) other (only if none of the above fit).>",
   "confidence": <float between 0 and 1>
 }}
 """

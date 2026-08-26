@@ -45,14 +45,14 @@ MODEL=qwen2.5-7b-instruct
 JUDGE_A_ID=judge_a
 JUDGE_B_ID=judge_b
 JUDGE_A_CFG=configs/models/mistral-7b-instruct-v0.3.yaml
-JUDGE_B_CFG=configs/models/phi-3.5-mini-instruct.yaml
+JUDGE_B_CFG=configs/models/llama-3.1-8b-instruct.yaml
 
 {
-  echo "=== 05 annotate (judge_a, new merged-category prompt) ==="
+  echo "=== 05 annotate (judge_a, broad stage-of-reasoning categories, upgraded judge_b) ==="
   python3 -u scripts/05_annotate_failures.py --benchmark "$BENCH" --annotator-type model \
       --annotator-id "$JUDGE_A_ID" --model "$JUDGE_A_CFG"
 
-  echo "=== 05 annotate (judge_b, new merged-category prompt) ==="
+  echo "=== 05 annotate (judge_b, broad stage-of-reasoning categories, upgraded judge_b) ==="
   python3 -u scripts/05_annotate_failures.py --benchmark "$BENCH" --annotator-type model \
       --annotator-id "$JUDGE_B_ID" --model "$JUDGE_B_CFG"
 

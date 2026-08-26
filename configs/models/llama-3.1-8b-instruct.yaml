@@ -1,0 +1,34 @@
+# Judge B - replaces Phi-3.5-mini-instruct (3.8B), which was mismatched in
+# capability against judge A (Mistral-7B-Instruct-v0.3, 7B). That gap was
+# never required by the actual justification for using two judges ("two
+# independent models from different families" - Section 15) and shows up as
+# a real confound in the judge_a/judge_b confusion matrix: judge_b used
+# "wrong formula" far more often than judge_a on the same failures, more
+# consistent with a capability gap than genuine annotator disagreement.
+# Llama is a different family from both Qwen (target model) and Mistral
+# (judge A), and comparable in size/capability to judge A.
+# Verified against the model's real config.json before use
+# (num_hidden_layers=32, hidden_size=4096, num_attention_heads=32,
+# num_key_value_heads=8 - grouped-query attention, irrelevant for a
+# text-only judge role since this model is never patched or probed
+# internally, only used to generate annotation text).
+name: llama-3.1-8b-instruct
+hf_id: meta-llama/Llama-3.1-8B-Instruct
+family: llama
+n_layers: 32
+hidden_size: 4096
+n_heads: 32
+dtype: bfloat16
+device_map: auto
+tokenizer_id: meta-llama/Llama-3.1-8B-Instruct
+chat_template: true
+
+generation:
+  do_sample: false
+  temperature: 0.0
+  top_p: 1.0
+  num_beams: 1
+  max_new_tokens: 512
+  seed: 0
+
+patch_site: resid_pre

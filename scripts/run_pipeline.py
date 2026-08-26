@@ -285,7 +285,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", required=True, help="target model config name, e.g. qwen2.5-3b-instruct")
     ap.add_argument("--judge-a", default="configs/models/mistral-7b-instruct-v0.3.yaml")
-    ap.add_argument("--judge-b", default="configs/models/phi-3.5-mini-instruct.yaml")
+    ap.add_argument("--judge-b", default="configs/models/llama-3.1-8b-instruct.yaml")
     ap.add_argument("--judge-a-id", default="judge_a")
     ap.add_argument("--judge-b-id", default="judge_b")
     ap.add_argument("--n-variants", type=int, default=8)
