@@ -98,28 +98,39 @@ Output ONLY that JSON object. Do not include any reasoning, analysis, or explana
 after it - not even a short lead-in sentence. Your entire response must be parseable as JSON on \
 its own.
 
-Example (a different problem, showing the expected format and level of detail - do not reuse any \
-of its content):
+Three examples below, one per category, showing the expected format and level of detail - do not \
+reuse any of their content, they are different problems from the one above.
 
-Problem:
-A store had 84 apples. They sold 37 apples in the morning and 19 more in the afternoon. How many \
-apples are left?
-
-Gold solution:
-84 - 37 = 47 apples left after the morning. 47 - 19 = 28 apples left after the afternoon.
-
-Correct final answer: 28
-
-Model's reasoning trace:
-Step 1: 84 - 37 = 47 apples left after the morning.
-Step 2: 47 - 19 = 38 apples left after the afternoon.
-
+Example of category (1) wrong quantity:
+Problem: Maria has 45 stickers. She gives 12 to her friend and buys 8 more. How many stickers does \
+she have now?
+Model's reasoning trace: Step 1: 45 - 15 = 30 stickers left after giving some away. Step 2: 30 + 8 \
+= 38 stickers.
 Model's final answer: 38
-
-Correct output for that example:
-{{"first_error_step": 2, "wrong_span": "47 - 19 = 38", "minimal_corrected_span": "47 - 19 = 28", \
-"description": "wrong computation: subtracted 19 from 47 incorrectly, getting 38 instead of 28", \
+Correct output: {{"first_error_step": 1, "wrong_span": "45 - 15 = 30", "minimal_corrected_span": \
+"45 - 12 = 33", "description": "wrong quantity: used 15 instead of the 12 stated in the problem", \
 "confidence": 0.95}}
+
+Example of category (2) wrong computation:
+Problem: A store had 84 apples. They sold 37 apples in the morning and 19 more in the afternoon. \
+How many apples are left?
+Model's reasoning trace: Step 1: 84 - 37 = 47 apples left after the morning. Step 2: 47 - 19 = 38 \
+apples left after the afternoon.
+Model's final answer: 38
+Correct output: {{"first_error_step": 2, "wrong_span": "47 - 19 = 38", "minimal_corrected_span": \
+"47 - 19 = 28", "description": "wrong computation: subtracted 19 from 47 incorrectly, getting 38 \
+instead of 28", "confidence": 0.95}}
+
+Example of category (3) wrong problem understanding:
+Problem: A baker makes 6 trays of muffins with 8 muffins per tray. She sells them in boxes of 4. \
+How many boxes can she fill completely?
+Model's reasoning trace: Step 1: 6 trays x 8 muffins = 48 muffins total. The baker has 48 muffins, \
+which is the final answer.
+Model's final answer: 48
+Correct output: {{"first_error_step": 1, "wrong_span": "The baker has 48 muffins, which is the \
+final answer.", "minimal_corrected_span": "48 muffins fill 48 / 4 = 12 boxes, which is the final \
+answer.", "description": "wrong problem understanding: answered with the total number of muffins \
+instead of the number of boxes the problem actually asked for", "confidence": 0.9}}
 
 Now annotate the actual problem above. Output ONLY the JSON object for it.
 """
