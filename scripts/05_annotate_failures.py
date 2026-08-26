@@ -30,7 +30,6 @@ import argparse
 import json
 import logging
 import random
-import re
 import sys
 from pathlib import Path
 
@@ -94,19 +93,84 @@ needed. This is a failure in understanding the task itself, not in the arithmeti
 (4) other (only if none of the above fit).>",
   "confidence": <float between 0 and 1>
 }}
+
+Output ONLY that JSON object. Do not include any reasoning, analysis, or explanation before or \
+after it - not even a short lead-in sentence. Your entire response must be parseable as JSON on \
+its own.
+
+Example (a different problem, showing the expected format and level of detail - do not reuse any \
+of its content):
+
+Problem:
+A store had 84 apples. They sold 37 apples in the morning and 19 more in the afternoon. How many \
+apples are left?
+
+Gold solution:
+84 - 37 = 47 apples left after the morning. 47 - 19 = 28 apples left after the afternoon.
+
+Correct final answer: 28
+
+Model's reasoning trace:
+Step 1: 84 - 37 = 47 apples left after the morning.
+Step 2: 47 - 19 = 38 apples left after the afternoon.
+
+Model's final answer: 38
+
+Correct output for that example:
+{{"first_error_step": 2, "wrong_span": "47 - 19 = 38", "minimal_corrected_span": "47 - 19 = 28", \
+"description": "wrong computation: subtracted 19 from 47 incorrectly, getting 38 instead of 28", \
+"confidence": 0.95}}
+
+Now annotate the actual problem above. Output ONLY the JSON object for it.
 """
 
-JSON_OBJ_RE = re.compile(r"\{.*\}", re.DOTALL)
+def _extract_json_objects(text: str) -> list[str]:
+    """Finds every top-level {...} substring via brace-depth counting rather
+    than a single greedy first-to-last regex. The naive regex breaks as soon
+    as the model adds any preamble/reasoning before the JSON despite being
+    told not to, or writes a draft attempt followed by a "final" one - a
+    first-brace-to-last-brace match then spans both and is not valid JSON on
+    its own, even though one of the individual objects usually is. Tracks
+    string literals so braces inside a quoted value don't affect depth.
+    """
+    objects = []
+    depth = 0
+    start = None
+    in_string = False
+    escape = False
+    for i, ch in enumerate(text):
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            if depth > 0:
+                depth -= 1
+                if depth == 0 and start is not None:
+                    objects.append(text[start:i + 1])
+    return objects
 
 
 def _parse_json_annotation(text: str) -> dict | None:
-    m = JSON_OBJ_RE.search(text)
-    if not m:
-        return None
-    try:
-        return json.loads(m.group(0))
-    except json.JSONDecodeError:
-        return None
+    # Prefer the LAST candidate object: if the model ignored the
+    # output-only-JSON instruction and wrote reasoning or a draft attempt
+    # first, the final one is the intended answer.
+    for candidate in reversed(_extract_json_objects(text)):
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+    return None
 
 
 def annotate_with_model(pairs: list, model_cfg: dict, annotator_id: str, out_path: Path,
@@ -139,7 +203,7 @@ def annotate_with_model(pairs: list, model_cfg: dict, annotator_id: str, out_pat
                 question=p.fail_question, gold_solution=p.meta.get("gold_solution", ""),
                 correct_answer=p.gold_answer, trace=p.fail_trace, model_answer=p.fail_answer,
             )
-            raw = wrapper.generate(prompt, max_new_tokens=300)
+            raw = wrapper.generate(prompt, max_new_tokens=500)
             parsed = _parse_json_annotation(raw)
             log.info("[%d/%d] %s parsed=%s", idx + 1, len(pairs), p.pair_id, parsed is not None)
             if parsed is None:
