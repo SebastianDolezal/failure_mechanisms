@@ -107,40 +107,68 @@ def attribution_patching_profile(
     changed_clean_positions: list[int],
     changed_fail_positions: list[int],
 ) -> np.ndarray:
+    """Two-point (trapezoidal) attribution patching.
+
+    Plain single-point AtP evaluates the gradient of the margin only at the
+    failed run's activations and assumes it stays constant all the way to the
+    clean activation - a first-order Taylor expansion around one endpoint of
+    the path exact patching actually interpolates. That assumption is exactly
+    what breaks under the non-linearity "When Attribution Patching Lies"
+    (2026) identifies as AtP's main error source, and it is a first-order
+    candidate for Gate C's low agreement with exact patching (Section 3.5).
+
+    Fix: also evaluate the same margin, and its gradient, at the clean run's
+    own activations - the other natural endpoint of the path - and average
+    the two gradients before multiplying by the clean-minus-fail difference.
+    This is a coarse (two-sample) Riemann approximation to the Integrated
+    Gradients path integral (Sundararajan et al., 2017) using the path's
+    endpoints rather than a finer interpolation; it does not require the
+    O(n_layers) patched forward passes a full multi-step version would, since
+    both endpoints are natural (unpatched) forward passes and every layer's
+    gradient is still recovered from a single backward pass per endpoint.
+    """
     n_layers = wrapper.n_layers
     k = min(len(changed_clean_positions), len(changed_fail_positions))
     if k == 0:
         return np.zeros(n_layers)
 
-    clean_acts = wrapper.capture_activations(clean_prefix)
-
-    _, captured, grads_correct, grads_error = _differentiable_margin(
+    _, captured_fail, grads_correct_fail, grads_error_fail = _differentiable_margin(
         wrapper, fail_prefix, correct_continuation, error_continuation
+    )
+    _, captured_clean, grads_correct_clean, grads_error_clean = _differentiable_margin(
+        wrapper, clean_prefix, correct_continuation, error_continuation
     )
 
     D = np.zeros(n_layers)
     fail_pos = changed_fail_positions[:k]
     clean_pos = changed_clean_positions[:k]
     for l in range(n_layers):
-        # grads_correct[l] / grads_error[l] have shape [1, seq_len, hidden]
-        # (the retained-grad tensor is the layer's raw input, batch dim
-        # included) - drop the batch dim before indexing by position.
-        gc = grads_correct[l][0] if grads_correct[l] is not None else None
-        ge = grads_error[l][0] if grads_error[l] is not None else None
-        if gc is None and ge is None:
+        # shape [1, seq_len, hidden] (retained-grad tensor is the layer's raw
+        # input, batch dim included) - drop the batch dim before indexing.
+        gc_f = grads_correct_fail[l][0] if grads_correct_fail[l] is not None else None
+        ge_f = grads_error_fail[l][0] if grads_error_fail[l] is not None else None
+        gc_c = grads_correct_clean[l][0] if grads_correct_clean[l] is not None else None
+        ge_c = grads_error_clean[l][0] if grads_error_clean[l] is not None else None
+        if gc_f is None and ge_f is None and gc_c is None and ge_c is None:
             continue
-        seq_len = gc.shape[0] if gc is not None else ge.shape[0]
-        max_idx = seq_len - 1
+        max_idx_f = (gc_f.shape[0] if gc_f is not None else ge_f.shape[0]) - 1
+        max_idx_c = (gc_c.shape[0] if gc_c is not None else ge_c.shape[0]) - 1
         contrib = 0.0
         for cp, fp in zip(clean_pos, fail_pos):
-            if fp > max_idx or cp >= clean_acts.hidden_states[l].shape[0]:
+            if fp > max_idx_f or cp > max_idx_c:
                 continue
             grad_at_fp = 0.0
-            if gc is not None:
-                grad_at_fp = grad_at_fp + gc[fp]
-            if ge is not None:
-                grad_at_fp = grad_at_fp + ge[fp]
-            diff = (clean_acts.hidden_states[l][cp].float() - captured[l][0, fp].detach().float())
-            contrib += float(diff @ grad_at_fp.float())
+            if gc_f is not None:
+                grad_at_fp = grad_at_fp + gc_f[fp]
+            if ge_f is not None:
+                grad_at_fp = grad_at_fp + ge_f[fp]
+            grad_at_cp = 0.0
+            if gc_c is not None:
+                grad_at_cp = grad_at_cp + gc_c[cp]
+            if ge_c is not None:
+                grad_at_cp = grad_at_cp + ge_c[cp]
+            avg_grad = (grad_at_fp.float() + grad_at_cp.float()) / 2.0
+            diff = (captured_clean[l][0, cp].detach().float() - captured_fail[l][0, fp].detach().float())
+            contrib += float(diff @ avg_grad)
         D[l] = contrib
     return D

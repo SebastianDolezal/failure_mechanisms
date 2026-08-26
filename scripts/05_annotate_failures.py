@@ -71,13 +71,25 @@ that step - not the whole step, unless the whole step is wrong>",
 wrong_span; if you cannot find a sub-span that isolates the error, widen wrong_span until the \
 two differ>",
   "description": "<start with EXACTLY ONE of these category labels, then a colon, then a short \
-specific detail - e.g. 'wrong operation: divided instead of multiplying the discount rate'. \
-Categories: wrong operation (added/subtracted/multiplied/divided incorrectly); wrong quantity \
-(used the wrong number or variable from the problem); unjustified rounding (rounded or dropped a \
-fractional remainder without basis); missing step (skipped a necessary computation); \
-misread constraint (misunderstood what the problem is asking or a stated condition); wrong \
-formula (applied an incorrect rule, ratio, or relationship); sign error (wrong positive/negative \
-direction); other (only if none of the above fit).>",
+specific detail - e.g. 'wrong operation: divided instead of multiplying the discount rate'. Check \
+the categories in this exact order and stop at the first one that applies - most GSM8K errors can \
+be described more than one way, and this priority order exists specifically so two different \
+annotators land on the same label instead of splitting between equally-defensible descriptions of \
+the same mistake: \
+(1) wrong quantity - the step plugs in a wrong number or variable value from the problem, even if \
+the arithmetic operation applied to it would otherwise have been correct. Use this whenever the \
+numbers going into the step are wrong, regardless of what operation follows. \
+(2) unjustified rounding - the right numbers and right operation, but a fractional remainder was \
+rounded or dropped without basis. \
+(3) sign error - the right numbers and operation, but the wrong positive/negative direction. \
+(4) missing step - a necessary computation was skipped entirely, rather than done wrong. \
+(5) misread constraint - the model misunderstood what the problem is asking or a stated condition, \
+independent of any specific arithmetic step. \
+(6) wrong operation - none of the above apply, the numbers are right, but the wrong arithmetic \
+operation or relationship was used (this includes what might otherwise be called 'used the wrong \
+formula, ratio, or rate' - in GSM8K a formula is just a specific operation choice, so do not use a \
+separate 'wrong formula' label; call it wrong operation instead). \
+(7) other (only if none of the above fit).>",
   "confidence": <float between 0 and 1>
 }}
 """
